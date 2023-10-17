@@ -17,19 +17,9 @@ data "aws_iam_policy_document" "AWSLambdaTrustPolicy" {
   }
 }
 
-import {
-  to = aws_iam_role.terraform-function-role
-  id = "terraform-function-role"
-}
-
 resource "aws_iam_role" "terraform-function-role" {
   name               = "terraform-function-role"
   assume_role_policy = "${data.aws_iam_policy_document.AWSLambdaTrustPolicy.json}"
-}
-
-import {
-  to = aws_iam_role_policy_attachment.terraform-function-role
-  id = "${aws_iam_role.terraform-function-role.name}"
 }
 
 resource "aws_iam_role_policy_attachment" "terraform-lambda-policy" {
@@ -53,25 +43,15 @@ data "aws_iam_policy_document" "lambda-start-build" {
   }
 }
 
-import {
-  to = aws_iam_policy.lambda-start-build
-  id = "lambda-start-codebuild"
-}
-
-resource "aws_iam_policy" "lambda-start-build" {
+resource "aws_iam_policy" "lambda-start-codebuild" {
   name        = "lambda-start-codebuild"
   description = "IAM Policy to allow Lambda Functions to trigger CodeBuild Builds"
   policy      = data.aws_iam_policy_document.lambda-start-build.json
 }
 
-import {
-  to = aws_iam_role_policy_attachment.lambda-start-build
-  id = "${aws_iam_policy.lambda-start-build.name}"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda-start-build" {
+resource "aws_iam_role_policy_attachment" "lambda-start-codebuild" {
   role       = aws_iam_role.terraform-function-role.name
-  policy_arn = aws_iam_policy.lambda-start-build.arn
+  policy_arn = aws_iam_policy.lambda-start-codebuild.arn
 }
 
 # ==========================================
@@ -87,11 +67,6 @@ data "archive_file" "lambda-archive-file" {
 # ==========================================
 # Define the Lambda function
 # ==========================================
-
-import {
-  to = aws_lambda_function.lambda-function
-  id = "${aws_lambda_function.lambda-function.name}"
-}
 
 resource "aws_lambda_function" "lambda-function" {
   # If the file is not in the current working directory you will need to include a
@@ -119,11 +94,6 @@ resource "aws_lambda_function" "lambda-function" {
 #       desired effect.
 
 
-import {
-  to = aws_codecommit_trigger.codecommit-trigger
-  id = "${aws_codecommit_trigger.codecommit-trigger.name}"
-}
-
 resource "aws_codecommit_trigger" "codecommit-trigger" {
   repository_name = "${aws_codecommit_repository.aws-repo.repository_name}"
 
@@ -137,11 +107,6 @@ resource "aws_codecommit_trigger" "codecommit-trigger" {
 # ==========================================
 # Allow the lambda to trigger from code commit
 # ==========================================
-
-import {
-  to = aws_lambda_permission.lambda-permission
-  id = "1"
-}
 
 resource "aws_lambda_permission" "lambda-permission" {
   statement_id  = "1"

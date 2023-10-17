@@ -34,14 +34,99 @@ set -x
 
 	terraform -chdir="${WORKING_DIR}" init
 
+        # ===============================================
         # Import the CodeCommit related resources
-	terraform -chdir="${WORKING_DIR}" import aws_codecommit_repository.aws-repo "${var.AWS_REPOSITORY_NAME}" || true
-	terraform -chdir="${WORKING_DIR}" import aws_cloudwatch_event_rule.events-rule "codecommit-${var.AWS_REPOSITORY_NAME}" || true
-	terraform -chdir="${WORKING_DIR}" import aws_cloudwatch_event_target.event-target foobar || true
-
-        # Lambda Related resources
-        terraform -chdir="${WORKING_DIR}" import aws_iam_role.terraform_function_role terraform_function_role || true
+        # ===============================================
+	terraform -chdir="${WORKING_DIR}" import aws_codecommit_repository.aws-repo "${TF_VAR_AWS_REPOSITORY_NAME}" || true
 
 
+        # ===============================================
+        # Import the CloudWatch related resources
+        # ===============================================
 
-terraform -chdir="${WORKING_DIR}" import  || true
+	terraform -chdir="${WORKING_DIR}" import aws_cloudwatch_event_rule.events-rule "codecommit-${TF_VAR_AWS_REPOSITORY_NAME}" || true
+
+        RULENAME="codecommit-${TF_VAR_AWS_REPOSITORY_NAME}"
+        TARGETID=$(aws events list-targets-by-rule --rule codecommit-tf-test | jq --raw-output ".Targets[0].Id" || true)
+        if [ ! -z "${TARGETID}" ]; then
+                RESOURCE_ID="${RULENAME}/${TARGETID}"
+	        terraform -chdir="${WORKING_DIR}" import aws_cloudwatch_event_target.event-target "${RESOURCE_ID}" || true
+        fi
+
+        # ===============================================
+        # Import the Lambda related resources
+        # ===============================================
+        terraform -chdir="${WORKING_DIR}" import aws_iam_role.terraform-function-role terraform-function-role || true
+
+        ROLE_NAME="terraform-function-role"
+        POLICY_ARN="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        RESOURCE_ID="${ROLE_NAME}/${POLICY_ARN}"
+
+        terraform -chdir="${WORKING_DIR}" import aws_iam_role_policy_attachment.terraform-lambda-policy "${RESOURCE_ID}" || true
+
+        IAM_POLICY_NAME=lambda-start-codebuild
+        IAM_POLICY_ARN=$(aws iam list-policies | jq -r ".Policies[] | select(.PolicyName==\"${IAM_POLICY_NAME}\")" | jq -r '.Arn')        
+        RESOURCE_ID="${IAM_POLICY_ARN}"
+        if [ ! -z "${IAM_POLICY_ARN}" ]; then
+                terraform -chdir="${WORKING_DIR}" import aws_iam_policy.lambda-start-codebuild "${RESOURCE_ID}" || true
+        fi
+
+        IAM_ROLE_NAME="terraform-function-role"
+        RESOURCE_ID="${IAM_ROLE_NAME}/${IAM_POLICY_ARN}"
+        if [ ! -z "${IAM_POLICY_ARN}" ]; then
+                terraform -chdir="${WORKING_DIR}" import aws_iam_role_policy_attachment.lambda-start-codebuild "${RESOURCE_ID}" || true
+        fi
+
+        terraform -chdir="${WORKING_DIR}" import aws_lambda_function.lambda-function "${TF_VAR_AWS_REPOSITORY_NAME}-codebuild-trigger" || true
+#        terraform -chdir="${WORKING_DIR}" import aws_codecommit_trigger.codecommit-trigger "${TF_VAR_AWS_REPOSITORY_NAME}" || true
+
+      
+        
+        #FUNCTION_NAME/STATEMENT_ID
+        #FUNCTION_NAME:QUALIFIER/STATEMENT_ID
+        FUNCTION_NAME="${TF_VAR_AWS_REPOSITORY_NAME}-codebuild-trigger"
+#        REPO_ARN=$(aws lambda get-policy --function-name "${FUNCTION_NAME}" \
+#                | jq ".Policy | fromjson" \
+#                | jq -r ".Statement[0].Condition.ArnLike.\"AWS:SourceArn\"")
+        STATEMENT_ID="1"
+        # aws lambda get-policy --function-name tf-test-codebuild-trigger | jq ".Policy | fromjson" | jq --raw-output ".Statement[0].Sid"
+        RESOURCE_ID="${FUNCTION_NAME}/${STATEMENT_ID}"
+        terraform -chdir="${WORKING_DIR}" import aws_lambda_permission.lambda-permission "${RESOURCE_ID}" || true
+
+        # ===============================================
+        # Import the CodeBuild related resources
+        # ===============================================
+        terraform -chdir="${WORKING_DIR}" import aws_iam_role.codebuild "codebuild-${TF_VAR_AWS_REPOSITORY_NAME}" || true
+
+        IAM_POLICY_NAME="${TF_VAR_AWS_REPOSITORY_NAME}"
+        IAM_POLICY_ARN=$(aws iam list-policies \
+                | jq -r ".Policies[] | select(.PolicyName==\"${IAM_POLICY_NAME}\")" \
+                | jq -r '.Arn')
+        RESOURCE_ID=${IAM_POLICY_ARN}
+        terraform -chdir="${WORKING_DIR}" import aws_iam_policy.cloudwatch-create-logs "${RESOURCE_ID}" || true
+
+        ## ^^ Errors but idnoring for now
+
+        ROLE_NAME="codebuild-${TF_VAR_AWS_REPOSITORY_NAME}"
+        IAM_POLICY_NAME="${TF_VAR_AWS_REPOSITORY_NAME}"
+        IAM_POLICY_ARN=$(aws iam list-policies \
+                | jq -r ".Policies[] | select(.PolicyName==\"${IAM_POLICY_NAME}\")" \
+                | jq -r '.Arn')        
+        RESOURCE_ID="${ROLE_NAME}/${IAM_POLICY_ARN}"
+        if [ ! -z "${IAM_POLICY_ARN}" ]; then
+                terraform -chdir="${WORKING_DIR}" import aws_iam_role_policy_attachment.cloudwatch-create-logs "${RESOURCE_ID}" || true
+        fi
+
+        IAM_POLICY_NAME=codebuild-access-codecommit
+        IAM_POLICY_ARN=$(aws iam list-policies | jq -r ".Policies[] | select(.PolicyName==\"${IAM_POLICY_NAME}\")" | jq -r '.Arn')        
+        RESOURCE_ID="${IAM_POLICY_ARN}"
+        if [ ! -z "${IAM_POLICY_ARN}" ]; then
+                terraform -chdir="${WORKING_DIR}" import aws_iam_policy.codebuild-access-codecommit "${RESOURCE_ID}" || true
+        fi
+
+        RESOURCE_ID="${ROLE_NAME}/${IAM_POLICY_ARN}"
+        if [ ! -z "${IAM_POLICY_ARN}" ]; then
+                terraform -chdir="${WORKING_DIR}" import aws_iam_role_policy_attachment.codebuild-access-codecommit "${RESOURCE_ID}" || true
+        fi
+
+        terraform -chdir="${WORKING_DIR}" import aws_codebuild_project.codebuild-project "${TF_VAR_AWS_REPOSITORY_NAME}" || true
