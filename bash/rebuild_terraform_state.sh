@@ -78,18 +78,9 @@ set -x
         fi
 
         terraform -chdir="${WORKING_DIR}" import aws_lambda_function.lambda-function "${TF_VAR_AWS_REPOSITORY_NAME}-codebuild-trigger" || true
-#        terraform -chdir="${WORKING_DIR}" import aws_codecommit_trigger.codecommit-trigger "${TF_VAR_AWS_REPOSITORY_NAME}" || true
 
-      
-        
-        #FUNCTION_NAME/STATEMENT_ID
-        #FUNCTION_NAME:QUALIFIER/STATEMENT_ID
         FUNCTION_NAME="${TF_VAR_AWS_REPOSITORY_NAME}-codebuild-trigger"
-#        REPO_ARN=$(aws lambda get-policy --function-name "${FUNCTION_NAME}" \
-#                | jq ".Policy | fromjson" \
-#                | jq -r ".Statement[0].Condition.ArnLike.\"AWS:SourceArn\"")
         STATEMENT_ID="1"
-        # aws lambda get-policy --function-name tf-test-codebuild-trigger | jq ".Policy | fromjson" | jq --raw-output ".Statement[0].Sid"
         RESOURCE_ID="${FUNCTION_NAME}/${STATEMENT_ID}"
         terraform -chdir="${WORKING_DIR}" import aws_lambda_permission.lambda-permission "${RESOURCE_ID}" || true
 
