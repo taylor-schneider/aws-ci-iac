@@ -113,6 +113,11 @@ resource "aws_iam_role_policy_attachment" "codebuild-access-codecommit" {
 #
 # https://docs.aws.amazon.com/codebuild/latest/APIReference/API_ProjectSource.html
 
+import {
+  to = aws_codebuild_project.codebuild-project
+  id = "${aws_codebuild_project.codebuild-project.name}"
+}
+
 resource "aws_codebuild_project" "codebuild-project" {
   name          = "${var.AWS_REPOSITORY_NAME}"
   description   = "A Pipeline to build the ${var.AWS_REPOSITORY_NAME} repository."

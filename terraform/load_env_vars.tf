@@ -7,7 +7,6 @@ variable "AWS_SECRET_KEY" {}
 variable "AWS_ACCESS_KEY" {}
 
 variable "AWS_REGION" {}
-variable "AWS_ACCOUNT_ID" {}
 
 variable "AWS_REPOSITORY_NAME" {}
 variable "BUILDSPEC_PATH" {}

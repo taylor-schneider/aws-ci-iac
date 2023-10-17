@@ -34,7 +34,14 @@ set -x
 
 	terraform -chdir="${WORKING_DIR}" init
 
-	terraform -chdir="${WORKING_DIR}" import aws_codecommit_repository.aws-repo tf-test || true
-	terraform -chdir="${WORKING_DIR}" import aws_cloudwatch_event_rule.events-rule tf-test || true
+        # Import the CodeCommit related resources
+	terraform -chdir="${WORKING_DIR}" import aws_codecommit_repository.aws-repo "${var.AWS_REPOSITORY_NAME}" || true
+	terraform -chdir="${WORKING_DIR}" import aws_cloudwatch_event_rule.events-rule "codecommit-${var.AWS_REPOSITORY_NAME}" || true
+	terraform -chdir="${WORKING_DIR}" import aws_cloudwatch_event_target.event-target foobar || true
+
+        # Lambda Related resources
+        terraform -chdir="${WORKING_DIR}" import aws_iam_role.terraform_function_role terraform_function_role || true
 
 
+
+terraform -chdir="${WORKING_DIR}" import  || true

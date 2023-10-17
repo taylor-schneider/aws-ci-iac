@@ -2,6 +2,11 @@
 # Create Cloudwatch EventRule and EventTraget to Trigger Lambda On CodeCommit Update
 # ===================================================================================
 
+import {
+  to = aws_cloudwatch_event_rule.events-rule
+  id = "${aws_cloudwatch_event_rule.events-rule.name}"
+}
+
 resource "aws_cloudwatch_event_rule" "events-rule" {
   name        = "codecommit-${var.AWS_REPOSITORY_NAME}"
   description = "Rule to monitor the CodeCommit repo named ${var.AWS_REPOSITORY_NAME}"
@@ -18,6 +23,11 @@ resource "aws_cloudwatch_event_rule" "events-rule" {
       "referenceType" = ["branch"]
     }
   })
+}
+
+import {
+  to = aws_cloudwatch_event_target.event-target
+  id = "${aws_cloudwatch_event_rule.events-rule.name}"
 }
 
 resource "aws_cloudwatch_event_target" "event-target" {
