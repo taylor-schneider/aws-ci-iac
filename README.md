@@ -41,3 +41,12 @@ This solution relies on a Lambda Function which sits between CodeCommit and Code
 <center><img src=./images/Architecture.png></center>
 
 The Lambda Function will pass the commit hash and branch name to the CodeBuild pipeline via BASH Environment Variables. The codebuild pipeline can then uses these variables to determine how to handle the VCS event.
+
+# Requirements
+In order to provision the resources, the following are required:
+- BASH >= 4.0
+- Terraform >= 1.5
+
+In order to rebuild the statefile using the [rebuild_terraform_state.sh](./bash/rebuild_terraform_state.sh) the following additional packages are required:
+- aws cli (can be installed with awscli pip package)
+- jq
